@@ -391,6 +391,9 @@ void DecoderStack::decode_proc()
 	srd_session_destroy(session);
 }
 
+const QString str1 = "USB PD: Full text";
+const QString str2 = "USB PD: parts";
+
 void DecoderStack::annotation_callback(srd_proto_data *pdata, void *decoder)
 {
 	assert(pdata);
@@ -410,14 +413,29 @@ void DecoderStack::annotation_callback(srd_proto_data *pdata, void *decoder)
 	assert(decc);
 
 	auto row_iter = d->rows_.end();
+	QString currentTitle;
 
 	// Try looking up the sub-row of this class
 	const auto r = d->class_rows_.find(make_pair(decc, a.format()));
-	if (r != d->class_rows_.end())
+	if (r != d->class_rows_.end()) {
+		currentTitle = (*r).second.title();
 		row_iter = d->rows_.find((*r).second);
-	else {
+	} else {
+		currentTitle = Row(decc).title();
 		// Failing that, use the decoder as a key
-		row_iter = d->rows_.find(Row(decc));	
+		row_iter = d->rows_.find(Row(decc));
+	}
+
+	const char *ptr = a.annotations()[0].toLatin1().data();
+	static QString parts;
+
+	if (QString::compare(currentTitle, str2, Qt::CaseInsensitive) == 0) {
+		parts.append(a.annotations()[0]);
+		parts.append(" ");
+	} else if (QString::compare(currentTitle, str1, Qt::CaseInsensitive) == 0) {
+		printf("%s\n", ptr);
+		printf("      -%s\n", parts.toLatin1().data());
+		parts.clear();
 	}
 
 	assert(row_iter != d->rows_.end());
